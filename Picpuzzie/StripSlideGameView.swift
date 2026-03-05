@@ -18,8 +18,9 @@ struct StripSlideGameView: View {
     let onNextLevel: () -> Void
     let onLevelSelected: (Int) -> Void
     let onNextPuzzle: () -> Void
+    let onShare: (() -> Void)?
 
-    init(sourceImage: UIImage, startingLevel: Int = 5, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void) {
+    init(sourceImage: UIImage, startingLevel: Int = 5, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void, onShare: (() -> Void)? = nil) {
         self.sourceImage = sourceImage
         self.currentLevel = currentLevel
         self.maxUnlockedLevel = maxUnlockedLevel
@@ -28,6 +29,7 @@ struct StripSlideGameView: View {
         self.onNextLevel = onNextLevel
         self.onLevelSelected = onLevelSelected
         self.onNextPuzzle = onNextPuzzle
+        self.onShare = onShare
         _gameState = StateObject(wrappedValue: StripSlideGameState(startingLevel: startingLevel))
     }
 
@@ -50,7 +52,8 @@ struct StripSlideGameView: View {
             onNextPuzzle: onNextPuzzle,
             onShuffle: {
                 gameState.shuffleStrips()
-            }
+            },
+            onShare: onShare
         ) {
             if !gameState.strips.isEmpty {
                 StripsPuzzleView(gameState: gameState)

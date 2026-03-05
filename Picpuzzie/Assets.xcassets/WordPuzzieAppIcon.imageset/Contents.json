@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "wordpuzzie-icon.jpg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

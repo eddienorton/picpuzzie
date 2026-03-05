@@ -18,8 +18,9 @@ struct CircleRotationGameView: View {
     let onNextLevel: () -> Void
     let onLevelSelected: (Int) -> Void
     let onNextPuzzle: () -> Void
+    let onShare: (() -> Void)?
 
-    init(sourceImage: UIImage, startingLevel: Int = 5, currentLevel: Int, maxUnlockedLevel: Int = 5, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void = { _ in }, onNextPuzzle: @escaping () -> Void) {
+    init(sourceImage: UIImage, startingLevel: Int = 5, currentLevel: Int, maxUnlockedLevel: Int = 5, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void = { _ in }, onNextPuzzle: @escaping () -> Void, onShare: (() -> Void)? = nil) {
         self.sourceImage = sourceImage
         self.currentLevel = currentLevel
         self.maxUnlockedLevel = maxUnlockedLevel
@@ -28,6 +29,7 @@ struct CircleRotationGameView: View {
         self.onNextLevel = onNextLevel
         self.onLevelSelected = onLevelSelected
         self.onNextPuzzle = onNextPuzzle
+        self.onShare = onShare
         _gameState = StateObject(wrappedValue: CircleRotationGameState(startingLevel: startingLevel))
     }
 
@@ -50,7 +52,8 @@ struct CircleRotationGameView: View {
             onNextPuzzle: onNextPuzzle,
             onShuffle: {
                 gameState.shuffleRings()
-            }
+            },
+            onShare: onShare
         ) {
             if !gameState.rings.isEmpty {
                 RotatingRingsView(gameState: gameState)

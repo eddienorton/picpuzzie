@@ -18,8 +18,9 @@ struct SwapPuzzleGameView: View {
     let onNextLevel: () -> Void
     let onLevelSelected: (Int) -> Void
     let onNextPuzzle: () -> Void
+    let onShare: (() -> Void)?
 
-    init(sourceImage: UIImage, startingLevel: Int = 3, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void) {
+    init(sourceImage: UIImage, startingLevel: Int = 3, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void, onShare: (() -> Void)? = nil) {
         self.sourceImage = sourceImage
         self.currentLevel = currentLevel
         self.maxUnlockedLevel = maxUnlockedLevel
@@ -28,6 +29,7 @@ struct SwapPuzzleGameView: View {
         self.onNextLevel = onNextLevel
         self.onLevelSelected = onLevelSelected
         self.onNextPuzzle = onNextPuzzle
+        self.onShare = onShare
         _gameState = StateObject(wrappedValue: SwapPuzzleGameState(startingLevel: startingLevel))
     }
 
@@ -51,6 +53,8 @@ struct SwapPuzzleGameView: View {
             onShuffle: {
                 gameState.setupGame(with: sourceImage)
             }
+            ,
+            onShare: onShare
         ) {
             if !gameState.pieces.isEmpty {
                 SwapPuzzleGridView(gameState: gameState)
@@ -70,11 +74,12 @@ struct SwapPuzzleGameView: View {
 
 struct SwapPuzzleGridView: View {
     @ObservedObject var gameState: SwapPuzzleGameState
+    @State private var gridLinesOpacity: Double = 1.0
 
     var body: some View {
         GeometryReader { geometry in
             let gridSize = gameState.level
-            let spacing: CGFloat = 2
+            let spacing: CGFloat = gameState.isSolved ? 0 : 2
             let totalSpacing = spacing * CGFloat(gridSize - 1)
             let pieceSize = (min(geometry.size.width, geometry.size.height) - totalSpacing) / CGFloat(gridSize)
 
@@ -90,7 +95,7 @@ struct SwapPuzzleGridView: View {
                                 .frame(width: pieceSize, height: pieceSize)
                                 .overlay(
                                     Rectangle()
-                                        .stroke(isSelected ? Color.yellow : Color.white.opacity(0.3), lineWidth: isSelected ? 4 : 1)
+                                        .stroke(isSelected ? Color.yellow : Color.white.opacity(0.3 * gridLinesOpacity), lineWidth: isSelected ? 4 : 1)
                                 )
                                 .scaleEffect(isSelected ? 1.05 : 1.0)
                                 .shadow(color: isSelected ? .yellow.opacity(0.8) : .clear, radius: isSelected ? 10 : 0)
@@ -104,6 +109,13 @@ struct SwapPuzzleGridView: View {
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+        }
+        .onChange(of: gameState.isSolved) { _, solved in
+            if solved {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    gridLinesOpacity = 0.0
+                }
+            }
         }
     }
 }

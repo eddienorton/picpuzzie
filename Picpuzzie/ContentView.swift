@@ -15,6 +15,7 @@ enum PuzzleType: Equatable {
     case flip
     case snake
     case swap
+    case pizza
 }
 
 struct ContentView: View {
@@ -29,6 +30,7 @@ struct ContentView: View {
     @State private var flipLevel: Int = 1 // Display level 1 = 3x3 grid
     @State private var snakeLevel: Int = 1 // Display level 1 = 3x3 grid
     @State private var swapLevel: Int = 1 // Display level 1 = 3x3 grid
+    @State private var pizzaLevel: Int = 1 // Display level 1 = 4 slices
 
     // Track max unlocked levels for each puzzle (display levels 1-8)
     @State private var classicSlidingMaxLevel: Int = 1
@@ -38,9 +40,12 @@ struct ContentView: View {
     @State private var flipMaxLevel: Int = 1
     @State private var snakeMaxLevel: Int = 1
     @State private var swapMaxLevel: Int = 1
+    @State private var pizzaMaxLevel: Int = 1
 
     @State private var currentPuzzleType: PuzzleType = .circleRotation // Start with circle rotation
     @State private var showPuzzleMenu = false
+    @State private var showCubesPromo = false
+    @State private var shareScreenshot: UIImage?  // For victory card generation
     
     // Time tracking
     @State private var puzzleStartTime: Date?
@@ -64,7 +69,8 @@ struct ContentView: View {
                         onPhotoSelected: setSelectedPhoto,
                         onNextLevel: advanceClassicSlidingLevel,
                         onLevelSelected: selectClassicSlidingLevel,
-                        onNextPuzzle: nextPuzzle
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .classicSliding) }
                     )
                     .id(imageId)
                 case .stripSliding:
@@ -77,7 +83,8 @@ struct ContentView: View {
                         onPhotoSelected: setSelectedPhoto,
                         onNextLevel: advanceStripSlidingLevel,
                         onLevelSelected: selectStripSlidingLevel,
-                        onNextPuzzle: nextPuzzle
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .stripSliding) }
                     )
                     .id(imageId)
                 case .circleRotation:
@@ -90,7 +97,8 @@ struct ContentView: View {
                         onPhotoSelected: setSelectedPhoto,
                         onNextLevel: advanceCircleLevel,
                         onLevelSelected: selectCircleLevel,
-                        onNextPuzzle: nextPuzzle
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .circleRotation) }
                     )
                     .id(imageId)
                 case .rotationPuzzle:
@@ -103,7 +111,8 @@ struct ContentView: View {
                         onPhotoSelected: setSelectedPhoto,
                         onNextLevel: advanceRotationPuzzleLevel,
                         onLevelSelected: selectRotationPuzzleLevel,
-                        onNextPuzzle: nextPuzzle
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .rotationPuzzle) }
                     )
                     .id(imageId)
                 case .flip:
@@ -116,7 +125,8 @@ struct ContentView: View {
                         onPhotoSelected: setSelectedPhoto,
                         onNextLevel: advanceFlipLevel,
                         onLevelSelected: selectFlipLevel,
-                        onNextPuzzle: nextPuzzle
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .flip) }
                     )
                     .id(imageId)
                 case .snake:
@@ -129,7 +139,8 @@ struct ContentView: View {
                         onPhotoSelected: setSelectedPhoto,
                         onNextLevel: advanceSnakeLevel,
                         onLevelSelected: selectSnakeLevel,
-                        onNextPuzzle: nextPuzzle
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .snake) }
                     )
                     .id(imageId)
                 case .swap:
@@ -142,7 +153,22 @@ struct ContentView: View {
                         onPhotoSelected: setSelectedPhoto,
                         onNextLevel: advanceSwapLevel,
                         onLevelSelected: selectSwapLevel,
-                        onNextPuzzle: nextPuzzle
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .swap) }
+                    )
+                    .id(imageId)
+                case .pizza:
+                    PizzaGameView(
+                        sourceImage: image,
+                        startingLevel: pizzaLevel, // Display level 1 = 4 slices
+                        currentLevel: pizzaLevel,
+                        maxUnlockedLevel: pizzaMaxLevel,
+                        onNewPhoto: loadRandomPhoto,
+                        onPhotoSelected: setSelectedPhoto,
+                        onNextLevel: advancePizzaLevel,
+                        onLevelSelected: selectPizzaLevel,
+                        onNextPuzzle: nextPuzzle,
+                        onShare: { shareVictory(for: .pizza) }
                     )
                     .id(imageId)
                 }
@@ -153,6 +179,34 @@ struct ContentView: View {
                         loadRandomPhoto()
                     }
             }
+            
+            // Cube button (Picpuzzie Cubes promo) - top left
+            VStack {
+                HStack {
+                    Button {
+                        showCubesPromo.toggle()
+                    } label: {
+                        Circle()
+                            .fill(Color(red: 0.8, green: 0.8, blue: 0.8)) // #cccccc
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.black, lineWidth: 2)
+                            )
+                            .overlay(
+                                Image(systemName: "cube.fill")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundColor(.black)
+                            )
+                            .shadow(color: .black.opacity(0.5), radius: 5, x: 0, y: 2)
+                    }
+                    .padding(.leading, 15)
+                    .padding(.top, 22)
+                    Spacer()
+                }
+                Spacer()
+            }
+            .zIndex(200)
             
             // Menu button - hamburger icon in top right
             VStack {
@@ -200,6 +254,9 @@ struct ContentView: View {
                 onResetAll: resetAllProgress,
                 getUpdatedStats: generatePuzzleStats
             )
+        }
+        .sheet(isPresented: $showCubesPromo) {
+            CubesPromoView()
         }
         .onAppear {
             loadPersistedState()
@@ -264,6 +321,10 @@ struct ContentView: View {
         let loadedSwap = PersistenceManager.shared.loadLevel(forPuzzle: "swap") ?? 1
         swapLevel = min((loadedSwap > 6) ? 1 : loadedSwap, 6)
         swapMaxLevel = swapLevel
+        
+        let loadedPizza = PersistenceManager.shared.loadLevel(forPuzzle: "pizza") ?? 1
+        pizzaLevel = min((loadedPizza > 6) ? 1 : loadedPizza, 6)
+        pizzaMaxLevel = pizzaLevel
     }
 
     private func saveCurrentState() {
@@ -283,6 +344,7 @@ struct ContentView: View {
         PersistenceManager.shared.saveLevel(flipLevel, forPuzzle: "flip")
         PersistenceManager.shared.saveLevel(snakeLevel, forPuzzle: "snake")
         PersistenceManager.shared.saveLevel(swapLevel, forPuzzle: "swap")
+        PersistenceManager.shared.saveLevel(pizzaLevel, forPuzzle: "pizza")
     }
 
     private func puzzleTypeFromString(_ string: String) -> PuzzleType? {
@@ -294,6 +356,7 @@ struct ContentView: View {
         case "flip": return .flip
         case "snake": return .snake
         case "swap": return .swap
+        case "pizza": return .pizza
         default: return nil
         }
     }
@@ -307,6 +370,7 @@ struct ContentView: View {
         case .flip: return "flip"
         case .snake: return "snake"
         case .swap: return "swap"
+        case .pizza: return "pizza"
         }
     }
 
@@ -345,6 +409,8 @@ struct ContentView: View {
         case .snake:
             currentPuzzleType = .swap
         case .swap:
+            currentPuzzleType = .pizza
+        case .pizza:
             currentPuzzleType = .classicSliding // Wrap around
         }
         // onChange handler will trigger and load new photo
@@ -469,6 +535,23 @@ struct ContentView: View {
         imageId = UUID()
     }
     
+    private func advancePizzaLevel() {
+        if pizzaLevel < 6 {
+            pizzaLevel += 1
+            if pizzaLevel > pizzaMaxLevel {
+                pizzaMaxLevel = pizzaLevel
+            }
+        }
+        saveCurrentState()
+        loadRandomPhoto()
+    }
+    
+    private func selectPizzaLevel(_ level: Int) {
+        pizzaLevel = level
+        saveCurrentState()
+        imageId = UUID()
+    }
+    
     // MARK: - Time Tracking
     
     private func startTimeTracking() {
@@ -540,6 +623,13 @@ struct ContentView: View {
                 emoji: "🔀",
                 currentLevel: swapLevel,
                 timeSpent: PersistenceManager.shared.loadTime(forPuzzle: "swap")
+            ),
+            PuzzleStats(
+                puzzleType: .pizza,
+                name: "Pizza",
+                emoji: "🍕",
+                currentLevel: pizzaLevel,
+                timeSpent: PersistenceManager.shared.loadTime(forPuzzle: "pizza")
             )
         ]
     }
@@ -560,6 +650,8 @@ struct ContentView: View {
         snakeMaxLevel = 1
         swapLevel = 1
         swapMaxLevel = 1
+        pizzaLevel = 1
+        pizzaMaxLevel = 1
         
         // Save reset levels
         PersistenceManager.shared.saveLevel(1, forPuzzle: "classicSliding")
@@ -569,6 +661,7 @@ struct ContentView: View {
         PersistenceManager.shared.saveLevel(1, forPuzzle: "flip")
         PersistenceManager.shared.saveLevel(1, forPuzzle: "snake")
         PersistenceManager.shared.saveLevel(1, forPuzzle: "swap")
+        PersistenceManager.shared.saveLevel(1, forPuzzle: "pizza")
         
         // Reset all times to 0
         PersistenceManager.shared.saveTime(0, forPuzzle: "classicSliding")
@@ -578,12 +671,176 @@ struct ContentView: View {
         PersistenceManager.shared.saveTime(0, forPuzzle: "flip")
         PersistenceManager.shared.saveTime(0, forPuzzle: "snake")
         PersistenceManager.shared.saveTime(0, forPuzzle: "swap")
+        PersistenceManager.shared.saveTime(0, forPuzzle: "pizza")
         
         // Reset timer
         startTimeTracking()
         
         // Load new photo to refresh
         loadRandomPhoto()
+    }
+    
+    // MARK: - Share Victory Functions
+    
+    func getPuzzleTypeName(_ type: PuzzleType) -> String {
+        switch type {
+        case .classicSliding: return "CLASSIC SLIDING"
+        case .stripSliding: return "STRIP SLIDING"
+        case .circleRotation: return "CIRCLE ROTATION"
+        case .rotationPuzzle: return "ROTATION PUZZLE"
+        case .flip: return "FLIP"
+        case .snake: return "SNAKE"
+        case .swap: return "SWAP"
+        case .pizza: return "PIZZA"
+        }
+    }
+    
+    func shareVictory(for puzzleType: PuzzleType) {
+        generateVictoryCard(for: puzzleType)
+        if let image = shareScreenshot {
+            presentShareSheet(with: image)
+        }
+    }
+    
+    func presentShareSheet(with image: UIImage) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            print("❌ No root view controller")
+            return
+        }
+        
+        // Find the topmost presented controller
+        var topController = rootViewController
+        while let presented = topController.presentedViewController {
+            topController = presented
+        }
+        
+        let activityVC = UIActivityViewController(
+            activityItems: [image],  // Image only - URL is in the image
+            applicationActivities: nil
+        )
+        
+        // For iPad
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = topController.view
+            popover.sourceRect = CGRect(x: topController.view.bounds.midX,
+                                       y: topController.view.bounds.midY,
+                                       width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        
+        topController.present(activityVC, animated: true)
+    }
+    
+    func generateVictoryCard(for puzzleType: PuzzleType) {
+        // 1. Capture the full window screenshot
+        let scenes = UIApplication.shared.connectedScenes
+        let windowScene = scenes.first as? UIWindowScene
+        guard let window = windowScene?.windows.first else {
+            print("❌ No window found")
+            return
+        }
+        
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        let fullScreenshot = renderer.image { context in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        
+        // 2. Crop the screenshot to remove black status bar area at top
+        let cropAmount: CGFloat = 60  // Remove ~60 points from top
+        let cropRect = CGRect(
+            x: 0,
+            y: cropAmount * fullScreenshot.scale,
+            width: fullScreenshot.size.width * fullScreenshot.scale,
+            height: (fullScreenshot.size.height * fullScreenshot.scale) - (cropAmount * fullScreenshot.scale)
+        )
+        
+        guard let croppedCGImage = fullScreenshot.cgImage?.cropping(to: cropRect) else {
+            print("❌ Failed to crop screenshot")
+            return
+        }
+        let puzzleScreenshot = UIImage(cgImage: croppedCGImage, scale: fullScreenshot.scale, orientation: fullScreenshot.imageOrientation)
+        
+        // 3. Create composite victory card (portrait, minimal decoration, maximum puzzle!)
+        let cardSize = CGSize(width: 1080, height: 1440)
+        let cardRenderer = UIGraphicsImageRenderer(size: cardSize)
+        
+        let cardImage = cardRenderer.image { context in
+            let ctx = context.cgContext
+            
+            // Background gradient (dark blue to black)
+            let colors = [
+                UIColor(red: 0.1, green: 0.2, blue: 0.4, alpha: 1.0).cgColor,
+                UIColor.black.cgColor
+            ]
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                     colors: colors as CFArray,
+                                     locations: [0.0, 1.0])!
+            ctx.drawLinearGradient(gradient,
+                                  start: CGPoint(x: cardSize.width/2, y: 0),
+                                  end: CGPoint(x: cardSize.width/2, y: cardSize.height),
+                                  options: [])
+            
+            // Border
+            ctx.setStrokeColor(UIColor.white.cgColor)
+            ctx.setLineWidth(8)
+            ctx.stroke(CGRect(x: 20, y: 20, width: cardSize.width - 40, height: cardSize.height - 40))
+            
+            // Title text: "I BEAT ALL 6 LEVELS!"
+            let titleText = "I BEAT ALL 6 LEVELS!"
+            let titleAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.boldSystemFont(ofSize: 64),
+                .foregroundColor: UIColor.white,
+                .strokeColor: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 1.0),
+                .strokeWidth: -4.0
+            ]
+            let titleSize = titleText.size(withAttributes: titleAttrs)
+            titleText.draw(at: CGPoint(x: (cardSize.width - titleSize.width) / 2, y: 40),
+                          withAttributes: titleAttrs)
+            
+            // Draw puzzle screenshot with MAXIMUM SIZE - minimal spacing!
+            let topOfPuzzle: CGFloat = 40 + titleSize.height + 20  // Title + small gap
+            let bottomSpace: CGFloat = 100  // Space for URL at bottom
+            let availableHeight = cardSize.height - topOfPuzzle - bottomSpace
+            
+            let screenshotSize = puzzleScreenshot.size
+            let aspectRatio = screenshotSize.width / screenshotSize.height
+            
+            // Use all available height
+            let puzzleHeight = availableHeight
+            let puzzleWidth = puzzleHeight * aspectRatio
+            
+            let puzzleRect = CGRect(
+                x: (cardSize.width - puzzleWidth) / 2,
+                y: topOfPuzzle,
+                width: puzzleWidth,
+                height: puzzleHeight
+            )
+            puzzleScreenshot.draw(in: puzzleRect)
+            
+            // Bottom text: website
+            let bottomText = "yonyc.app/puzzie-family.html"
+            let bottomAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 36, weight: .medium),
+                .foregroundColor: UIColor.white.withAlphaComponent(0.8)
+            ]
+            let bottomSize = bottomText.size(withAttributes: bottomAttrs)
+            bottomText.draw(at: CGPoint(x: (cardSize.width - bottomSize.width) / 2,
+                                       y: cardSize.height - 80),
+                           withAttributes: bottomAttrs)
+        }
+        
+        // 4. Convert to JPEG with compression
+        if let jpegData = cardImage.jpegData(compressionQuality: 0.85),
+           let compressedImage = UIImage(data: jpegData) {
+            shareScreenshot = compressedImage
+            print("🎨 Victory card generated for \(getPuzzleTypeName(puzzleType))")
+            print("🎨 Card size: \(cardImage.size)")
+            print("🎨 JPEG size: \(jpegData.count / 1024)KB")
+        } else {
+            shareScreenshot = cardImage
+            print("🎨 Victory card generated (uncompressed)")
+        }
     }
 }
 

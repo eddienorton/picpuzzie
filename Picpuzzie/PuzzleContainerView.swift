@@ -22,6 +22,7 @@ struct PuzzleContainerView<Content: View>: View {
     let onPhotoSelected: (UIImage) -> Void
     let onNextPuzzle: () -> Void
     let onShuffle: (() -> Void)?
+    let onShare: (() -> Void)?  // Share victory callback
     
     @Binding var showingCelebration: Bool
     let content: Content
@@ -43,6 +44,7 @@ struct PuzzleContainerView<Content: View>: View {
         onPhotoSelected: @escaping (UIImage) -> Void,
         onNextPuzzle: @escaping () -> Void,
         onShuffle: (() -> Void)? = nil,
+        onShare: (() -> Void)? = nil,  // Optional share callback
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
@@ -57,6 +59,7 @@ struct PuzzleContainerView<Content: View>: View {
         self.onPhotoSelected = onPhotoSelected
         self.onNextPuzzle = onNextPuzzle
         self.onShuffle = onShuffle
+        self.onShare = onShare
         self._showingCelebration = showingCelebration
         self.content = content()
     }
@@ -87,20 +90,41 @@ struct PuzzleContainerView<Content: View>: View {
                                 Text("🎉 Solved! 🎉")
                                     .font(.system(size: 24, weight: .bold))  // Reduced from 28 to 24
                                 
-                                Button("Next Level") {
-                                    onNextLevel()
+                                HStack(spacing: 15) {
+                                    // Only show Next Level if not on level 6
+                                    if currentLevel < 6 {
+                                        Button("Next Level") {
+                                            onNextLevel()
+                                        }
+                                        .font(.system(size: 20, weight: .bold))  // Reduced from 22 to 20
+                                        .padding(.horizontal, 40)
+                                        .padding(.vertical, 12)  // Reduced from 15 to 12
+                                        .background(Color.green)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(15)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .strokeBorder(Color.yellow, lineWidth: 4)
+                                        )
+                                        .shadow(color: .yellow.opacity(0.6), radius: 10, x: 0, y: 0)
+                                    }
+                                    
+                                    // Show share button ONLY on level 6
+                                    if currentLevel == 6, let share = onShare {
+                                        Button(action: share) {
+                                            HStack {
+                                                Image(systemName: "square.and.arrow.up")
+                                                Text("Share Victory!")
+                                            }
+                                            .font(.system(size: 18, weight: .bold))
+                                            .padding(.horizontal, 30)
+                                            .padding(.vertical, 12)
+                                            .background(Color.blue)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(15)
+                                        }
+                                    }
                                 }
-                                .font(.system(size: 20, weight: .bold))  // Reduced from 22 to 20
-                                .padding(.horizontal, 40)
-                                .padding(.vertical, 12)  // Reduced from 15 to 12
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(15)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .strokeBorder(Color.yellow, lineWidth: 4)
-                                )
-                                .shadow(color: .yellow.opacity(0.6), radius: 10, x: 0, y: 0)
                             }
                         }
                         

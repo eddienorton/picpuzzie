@@ -18,8 +18,9 @@ struct RotationPuzzleGameView: View {
     let onNextLevel: () -> Void
     let onLevelSelected: (Int) -> Void
     let onNextPuzzle: () -> Void
+    let onShare: (() -> Void)?
 
-    init(sourceImage: UIImage, startingLevel: Int = 3, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void) {
+    init(sourceImage: UIImage, startingLevel: Int = 3, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void, onShare: (() -> Void)? = nil) {
         self.sourceImage = sourceImage
         self.currentLevel = currentLevel
         self.maxUnlockedLevel = maxUnlockedLevel
@@ -28,6 +29,7 @@ struct RotationPuzzleGameView: View {
         self.onNextLevel = onNextLevel
         self.onLevelSelected = onLevelSelected
         self.onNextPuzzle = onNextPuzzle
+        self.onShare = onShare
         _gameState = StateObject(wrappedValue: RotationPuzzleGameState(startingLevel: startingLevel))
     }
 
@@ -51,6 +53,8 @@ struct RotationPuzzleGameView: View {
             onShuffle: {
                 gameState.shufflePieces()
             }
+            ,
+            onShare: onShare
         ) {
             if !gameState.pieces.isEmpty {
                 RotationGridView(gameState: gameState)

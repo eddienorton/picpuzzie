@@ -18,8 +18,9 @@ struct GameView: View {
     let onNextLevel: () -> Void
     let onLevelSelected: (Int) -> Void
     let onNextPuzzle: () -> Void
+    let onShare: (() -> Void)?
 
-    init(sourceImage: UIImage, startingLevel: Int = 3, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void) {
+    init(sourceImage: UIImage, startingLevel: Int = 3, currentLevel: Int, maxUnlockedLevel: Int, onNewPhoto: @escaping () -> Void, onPhotoSelected: @escaping (UIImage) -> Void, onNextLevel: @escaping () -> Void, onLevelSelected: @escaping (Int) -> Void, onNextPuzzle: @escaping () -> Void, onShare: (() -> Void)? = nil) {
         self.sourceImage = sourceImage
         self.currentLevel = currentLevel
         self.maxUnlockedLevel = maxUnlockedLevel
@@ -28,6 +29,7 @@ struct GameView: View {
         self.onNextLevel = onNextLevel
         self.onLevelSelected = onLevelSelected
         self.onNextPuzzle = onNextPuzzle
+        self.onShare = onShare
         _gameState = StateObject(wrappedValue: GameState(startingLevel: startingLevel))
     }
 
@@ -50,7 +52,8 @@ struct GameView: View {
             onNextPuzzle: onNextPuzzle,
             onShuffle: {
                 gameState.shuffleGrid()
-            }
+            },
+            onShare: onShare
         ) {
             if !gameState.currentGrid.isEmpty {
                 PuzzleGridView(gameState: gameState)
@@ -72,11 +75,12 @@ struct PuzzleGridView: View {
     @ObservedObject var gameState: GameState
     @State private var draggedPiece: (row: Int, col: Int)? = nil
     @State private var dragOffset: CGSize = .zero
+    @State private var gridLinesOpacity: Double = 1.0
 
     var body: some View {
         GeometryReader { geometry in
             let gridSize = gameState.level
-            let spacing: CGFloat = 2
+            let spacing: CGFloat = gameState.isSolved ? 0 : 2
             let totalSpacing = spacing * CGFloat(gridSize - 1)
             let pieceSize = (min(geometry.size.width, geometry.size.height) - totalSpacing) / CGFloat(gridSize)
 
@@ -98,7 +102,7 @@ struct PuzzleGridView: View {
                                             .offset(offset)
                                             .overlay(
                                                 Rectangle()
-                                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                                    .stroke(Color.white.opacity(0.3 * gridLinesOpacity), lineWidth: 1)
                                             )
                                             .onTapGesture {
                                                 handleTap(row: row, col: col)
@@ -127,6 +131,13 @@ struct PuzzleGridView: View {
                             }
                         }
                     }
+                }
+            }
+        }
+        .onChange(of: gameState.isSolved) { _, solved in
+            if solved {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    gridLinesOpacity = 0.0
                 }
             }
         }
